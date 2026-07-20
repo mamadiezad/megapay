@@ -66,7 +66,14 @@ export default function Home() {
           </pre>
         </div>
       </div>
+
+      <footer style={{ textAlign: "center", padding: "40px 20px", borderTop: "1px solid #313244", color: "#6b7280", fontSize: 13, marginTop: 40 }}>
+        ساخته شده با ❤️ توسط <a href="https://t.me/llllxyz" style={{ color: "#03a66d", textDecoration: "none" }}>Mohammad</a>
+      </footer>
     </div>
+      <footer style={{ textAlign: "center", padding: "40px 20px", borderTop: "1px solid #313244", color: "#6b7280", fontSize: 13, marginTop: 40 }}>
+        ساخته شده با ❤️ توسط <a href="https://t.me/llllxyz" style={{ color: "#03a66d", textDecoration: "none" }}>Mohammad</a>
+      </footer>
   );
 }
 
