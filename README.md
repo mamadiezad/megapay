@@ -1,28 +1,21 @@
-# 💳 مگاپرداخت — MegaPay Crypto Payment Gateway
+# 💳 مگاپرداخت (MegaPay) v2.0
 
-> **درگاه پرداخت ارز دیجیتال USDT برای کسب‌وکارهای ایرانی**
-> MegaPay — Accept USDT payments without banks, sanctions, or high fees.
+> **درگاه پرداخت ارز دیجیتال** — دریافت USDT روی TRON (بزودی BSC, ETH)
+> Persian Crypto Payment Gateway — production-ready, scalable, self-hosted
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)](https://nextjs.org)
-[![TRON](https://img.shields.io/badge/TRON-USDT-FF6B2B?logo=tron)](https://tron.network)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb)](https://mongodb.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+## ✨ ویژگی‌ها
 
----
-
-## ✨ قابلیت‌ها
-
-| قابلیت | توضیح |
-|--------|-------|
-| 🔗 **لینک پرداخت** | با یک API call لینک پرداخت بسازید |
-| 💳 **USDT (TRC20)** | دریافت تتر بدون کارمزد بالا |
-| 📱 **QR Code** | اسکن و واریز آسان |
-| 🔔 **Webhook** | پس از واریز، به سرور شما اعلام می‌شود |
-| ⏱ **انقضای خودکار** | لینک‌های پرداخت با زمان محدود |
-| 🔒 **غیرحضانتی** | پول مستقیم به کیف پول شما واریز می‌شود |
-| 🐳 **داکر** | قابل نصب روی سرور شخصی |
-
----
+| ویژگی | توضیح |
+|:------|:-------|
+| 🔗 **لینک پرداخت** | ایجاد با یک API call |
+| 💳 **USDT (TRC20)** | پشتیبانی از تتر روی ترون |
+| 📱 **QR Code** | اسکن و واریز |
+| 🔔 **Webhook** | اعلام خودکار با Retry |
+| 🏪 **چند فروشنده** | API Key مجزا برای هر کسب و کار |
+| 📊 **داشبورد مدیریت** | آمار لحظه‌ای، ثبت فروشنده |
+| ⏱ **انقضای خودکار** | لینک‌های موقت |
+| 🔒 **غیرحضانتی** | پول مستقیم به کیف پول شما می‌ره |
+| 🐳 **داکر** | قابل نصب روی هر سروری |
 
 ## 🚀 شروع سریع
 
@@ -30,81 +23,93 @@
 git clone https://github.com/mamadiezad/megapay.git
 cd megapay
 npm install
+
+# تنظیم .env.local
+cp .env.example .env.local
+
+# اجرا
 npm run dev
 ```
 
-### تنظیمات `.env.local`
-
-```env
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/megapay
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-API_SECRET_KEY=your-secret-key-here
-```
-
-### ایجاد لینک پرداخت
+## 🐳 اجرا با داکر
 
 ```bash
-curl -X POST http://localhost:3000/api/create-payment \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: your-secret-key" \
-  -d '{"amount": 50, "wallet": "TYourTronWallet..."}'
+docker-compose up --build
 ```
 
-پاسخ:
-```json
+## 🔌 API
+
+### ایجاد لینک پرداخت
+```bash
+POST /api/payment/create
+x-api-key: YOUR_API_KEY
+
 {
-  "success": true,
-  "data": {
-    "txId": "ABC12345",
-    "paymentUrl": "http://localhost:3000/pay/ABC12345",
-    "amount": 50,
-    "toAddress": "TYourTronWallet..."
-  }
+  "amount": 50,
+  "wallet": "TYourTronWallet...",
+  "description": "سفارش #123",
+  "callbackUrl": "https://site.com/webhook",
+  "redirectUrl": "https://site.com/success"
 }
 ```
 
----
+### بررسی وضعیت
+```bash
+GET /api/payment/check?txId=ABC12345
+```
 
-## 📁 ساختار پروژه
+### ثبت فروشنده (مدیریت)
+```bash
+POST /api/merchant/register
+x-master-key: YOUR_MASTER_KEY
+
+{ "name": "فروشگاه من", "wallet": "T..." }
+```
+
+## 📁 ساختار
 
 ```
 megapay/
 ├── src/
 │   ├── lib/
-│   │   ├── config.ts       # تنظیمات
-│   │   ├── db.ts           # مدل دیتابیس
-│   │   └── tron.ts         # اتصال به TRON
+│   │   ├── config.ts         # تنظیمات
+│   │   ├── db.ts             # MongoDB (Transaction, Merchant)
+│   │   ├── cache.ts          # Redis (اختیاری)
+│   │   ├── blockchain/
+│   │   │   ├── index.ts      # Multi-chain interface
+│   │   │   └── tron.ts       # TRON provider
+│   │   └── utils/
+│   │       ├── errors.ts     # خطاهای ساختاریافته
+│   │       └── logger.ts     # لاگر
 │   ├── pages/
-│   │   ├── index.tsx        # صفحه اصلی
-│   │   ├── pay/[txId].tsx  # صفحه پرداخت
+│   │   ├── index.tsx         # صفحه اصلی
+│   │   ├── admin.tsx         # پنل مدیریت
 │   │   └── api/
-│   │       ├── create-payment.ts  # API ایجاد پرداخت
-│   │       └── check-payment.ts   # بررسی وضعیت
-│   └── types/index.ts
-├── package.json
+│   │       ├── payment/
+│   │       │   ├── create.ts # ایجاد پرداخت
+│   │       │   └── check.ts  # بررسی وضعیت
+│   │       ├── merchant/
+│   │       │   ├── register.ts # ثبت فروشنده
+│   │       │   └── stats.ts    # آمار فروشنده
+│   │       └── admin/
+│   │           └── stats.ts    # آمار کل
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
 └── README.md
 ```
 
----
-
-## 🐳 Docker
-
-```bash
-docker build -t megapay .
-docker run -p 3000:3000 megapay
-```
-
----
-
-## 🔗 ریپوهای مرتبط
-- [🤖 ربات چت ناشناس](https://github.com/mamadiezad/robot-chat-nashnas)
-- [🤖 AI Sales Bot](https://github.com/mamadiezad/ai-business-sales-bot)
-
----
+## 🎯 مسیر بعدی
+- [x] TRON (USDT)
+- [ ] BSC (USDT/BUSD)
+- [ ] Ethereum (USDT)
+- [ ] Webhook Retry Queue
+- [ ] Admin Dashboard کامل
+- [ ] Merchant Dashboard
+- [ ] Rate Limiting
+- [ ] Redis Caching
 
 ## 📜 لایسنس
-**MIT**
+MIT
 
----
-
-<p align="center">ساخته شده با ❤️ توسط <a href="https://github.com/mamadiezad">Mohammad</a></p>
+<p align="center">Built with ❤️ by <a href="https://github.com/mamadiezad">Mohammad</a></p>
