@@ -1,10 +1,16 @@
 import mongoose from 'mongoose';
+import { MONGO_URI } from './config';
 
+// ===== Schema =====
 const TransactionSchema = new mongoose.Schema({
   txId: { type: String, required: true, unique: true, index: true },
   amount: { type: Number, required: true },
   amountReceived: { type: Number, default: 0 },
-  status: { type: String, enum: ['pending', 'paid', 'expired', 'refunded', 'overpaid'], default: 'pending' },
+  status: {
+    type: String,
+    enum: ['pending', 'paid', 'expired', 'refunded', 'overpaid'],
+    default: 'pending',
+  },
   fromAddress: { type: String },
   toAddress: { type: String, required: true },
   txHash: { type: String },
@@ -19,11 +25,18 @@ const TransactionSchema = new mongoose.Schema({
   paidAt: { type: Date },
 });
 
-export const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);
+export const Transaction =
+  mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);
+
+// ===== Cached Connection (prevents duplicate connections in serverless) =====
+let cached = (global as any).__mongoose;
+if (!cached) cached = (global as any).__mongoose = { conn: null, promise: null };
 
 export async function connectDB() {
-  if (mongoose.connections[0].readyState) return;
-  const { MONGO_URI } = await import('../lib/config');
-  await mongoose.connect(MONGO_URI);
-  console.log('MongoDB connected');
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URI).then((m) => m);
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
 }

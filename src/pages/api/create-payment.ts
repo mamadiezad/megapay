@@ -2,23 +2,31 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid';
 import { connectDB, Transaction } from '@/lib/db';
 import { API_KEY, SITE_URL } from '@/lib/config';
+import { isValidTronAddress } from '@/lib/tron';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  // API Key authentication
   const authKey = req.headers['x-api-key'];
-  if (authKey !== API_KEY) return res.status(401).json({ error: 'Invalid API key' });
+  if (authKey !== API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
 
   await connectDB();
 
   const { amount, description, callbackUrl, redirectUrl, customerEmail, metadata, wallet } = req.body;
 
-  if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
-  if (!wallet) return res.status(400).json({ error: 'Recipient wallet required' });
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Invalid amount' });
+  }
+  if (!wallet || !isValidTronAddress(wallet)) {
+    return res.status(400).json({ error: 'Invalid TRON wallet address' });
+  }
 
   const txId = uuidv4().slice(0, 8).toUpperCase();
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
   const tx = await Transaction.create({
     txId,
@@ -32,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     expiresAt,
   });
 
-  res.json({
+  return res.json({
     success: true,
     data: {
       txId: tx.txId,

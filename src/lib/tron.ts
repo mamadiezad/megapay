@@ -1,6 +1,6 @@
-// TRON blockchain utilities
-const TRON_GRID = 'https://api.trongrid.io';
-const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+import { TRON_CONFIG } from './config';
+
+const { TRON_GRID, USDT_CONTRACT } = TRON_CONFIG;
 
 export interface Trc20Transaction {
   tx_id: string;
@@ -9,42 +9,39 @@ export interface Trc20Transaction {
   value: string;
   block_timestamp: number;
   confirmed: boolean;
+  token_info?: { symbol: string; decimals: number };
 }
 
-// Check if a transaction exists on TRON blockchain
-export async function checkTrc20Transaction(txHash: string): Promise<Trc20Transaction | null> {
-  try {
-    const res = await fetch(`${TRON_GRID}/v1/transactions/${txHash}`);
-    const data = await res.json();
-    return data.data?.[0] || null;
-  } catch {
-    return null;
-  }
-}
-
-// Get TRC20 transfers for a wallet (incoming USDT)
 export async function getIncomingUsdtTransfers(
   walletAddress: string,
-  minTimestamp?: number
+  sinceTimestamp?: number
 ): Promise<Trc20Transaction[]> {
-  const params = new URLSearchParams({
-    limit: '50',
-    only_confirmed: 'true',
-    contract_address: USDT_CONTRACT,
-    to_address: walletAddress,
-    ...(minTimestamp ? { min_timestamp: String(minTimestamp) } : {}),
-  });
-
   try {
-    const res = await fetch(`${TRON_GRID}/v1/accounts/${walletAddress}/transactions/trc20?${params}`);
+    const params = new URLSearchParams({
+      limit: '50',
+      only_confirmed: 'true',
+      contract_address: USDT_CONTRACT,
+      ...(sinceTimestamp ? { min_timestamp: String(sinceTimestamp) } : {}),
+    });
+
+    const res = await fetch(
+      `${TRON_GRID}/v1/accounts/${walletAddress}/transactions/trc20?${params}`
+    );
     const data = await res.json();
-    return data.data || [];
+
+    if (!data.data || !Array.isArray(data.data)) return [];
+
+    // Filter only confirmed USDT transfers
+    return data.data.filter((tx: Trc20Transaction) => {
+      if (!tx.confirmed) return false;
+      if (tx.to !== walletAddress) return false;
+      return true;
+    });
   } catch {
     return [];
   }
 }
 
-// Convert TRON sun/wei to USDT value
 export function fromSun(sunValue: string): number {
   return Number(sunValue) / 1_000_000;
 }
@@ -53,7 +50,6 @@ export function toSun(usdtValue: number): number {
   return Math.floor(usdtValue * 1_000_000);
 }
 
-// Validate TRON address
 export function isValidTronAddress(address: string): boolean {
   return /^T[a-zA-Z0-9]{33}$/.test(address);
 }
